@@ -2,7 +2,6 @@
 
 #include <brynet/base/Any.hpp>
 #include <brynet/base/Buffer.hpp>
-#include <brynet/base/Noexcept.hpp>
 #include <brynet/base/NonCopyable.hpp>
 #include <brynet/base/Packet.hpp>
 #include <brynet/base/Timer.hpp>
@@ -114,7 +113,6 @@ public:
         return mEventLoop;
     }
 
-    //TODO::如果所属EventLoop已经没有工作，则可能导致内存无限大，因为所投递的请求都没有得到处理
     void send(const SendableMsg::Ptr& msg,
               PacketSendedCallback&& callback = nullptr)
     {
@@ -124,8 +122,7 @@ public:
         }
         else
         {
-            auto sharedThis = shared_from_this();
-            mEventLoop->runAsyncFunctor([sharedThis, msg, callback, this]() mutable {
+            mEventLoop->runAsyncFunctor([sharedThis = shared_from_this(), msg, callback = std::move(callback), this]() mutable {
                 sendInLoop(msg, std::move(callback));
             });
         }
@@ -156,8 +153,7 @@ public:
     {
         verifyArgType(cb, &Callback::operator());
 
-        auto sharedThis = shared_from_this();
-        mEventLoop->runAsyncFunctor([sharedThis, cb, this]() mutable {
+        mEventLoop->runAsyncFunctor([sharedThis = shared_from_this(), cb, this]() mutable {
             mDataCallback = cb;
             processRecvMessage();
         });
@@ -165,8 +161,7 @@ public:
 
     void setDisConnectCallback(DisconnectedCallback&& cb)
     {
-        auto sharedThis = shared_from_this();
-        mEventLoop->runAsyncFunctor([sharedThis, cb, this]() mutable {
+        mEventLoop->runAsyncFunctor([sharedThis = shared_from_this(), cb, this]() mutable {
             mDisConnectCallback = std::move(cb);
         });
     }
@@ -174,8 +169,7 @@ public:
     /* if checkTime is zero, will cancel check heartbeat */
     void setHeartBeat(std::chrono::nanoseconds checkTime)
     {
-        auto sharedThis = shared_from_this();
-        mEventLoop->runAsyncFunctor([sharedThis, checkTime, this]() {
+        mEventLoop->runAsyncFunctor([sharedThis = shared_from_this(), checkTime, this]() {
             if (mTimer.lock() != nullptr)
             {
                 mTimer.lock()->cancel();
@@ -189,8 +183,7 @@ public:
 
     void setHighWaterCallback(HighWaterCallback cb, size_t size)
     {
-        auto sharedThis = shared_from_this();
-        mEventLoop->runAsyncFunctor([=]() mutable {
+        mEventLoop->runAsyncFunctor([=, sharedThis = shared_from_this(), this]() mutable {
             mHighWaterCallback = std::move(cb);
             mHighWaterSize = size;
         });
@@ -198,8 +191,7 @@ public:
 
     void postShrinkReceiveBuffer()
     {
-        auto sharedThis = shared_from_this();
-        mEventLoop->runAsyncFunctor([sharedThis, this]() {
+        mEventLoop->runAsyncFunctor([sharedThis = shared_from_this(), this]() {
             mEventLoop->runFunctorAfterLoop([sharedThis, this]() {
                 shrinkReceiveBuffer();
             });
@@ -208,8 +200,7 @@ public:
 
     void postDisConnect()
     {
-        auto sharedThis = shared_from_this();
-        mEventLoop->runAsyncFunctor([sharedThis, this]() {
+        mEventLoop->runAsyncFunctor([sharedThis = shared_from_this(), this]() {
             // call runFunctorAfterLoop, avoid user call postDisConnect in message callback, because after it brynet will use receive buffer.
             mEventLoop->runFunctorAfterLoop([sharedThis, this]() {
                 procCloseInLoop();
@@ -219,8 +210,7 @@ public:
 
     void postShutdown()
     {
-        auto sharedThis = shared_from_this();
-        mEventLoop->runAsyncFunctor([sharedThis, this]() {
+        mEventLoop->runAsyncFunctor([sharedThis = shared_from_this(), this]() {
             mEventLoop->runFunctorAfterLoop([sharedThis, this]() {
                 procShutdownInLoop();
             });
@@ -236,21 +226,21 @@ protected:
     TcpConnection(TcpSocket::Ptr socket,
                   size_t maxRecvBufferSize,
                   EnterCallback&& enterCallback,
-                  EventLoop::Ptr eventLoop) BRYNET_NOEXCEPT
+                  EventLoop::Ptr eventLoop) noexcept
         :
 #ifdef BRYNET_PLATFORM_WINDOWS
-        mOvlRecv(port::Win::OverlappedType::OverlappedRecv),
-        mOvlSend(port::Win::OverlappedType::OverlappedSend),
-        mPostClose(false),
+          mOvlRecv(port::Win::OverlappedType::OverlappedRecv),
+          mOvlSend(port::Win::OverlappedType::OverlappedSend),
+          mPostClose(false),
 #endif
-        mIP(socket->getRemoteIP()),
-        mSocket(std::move(socket)),
-        mEventLoop(std::move(eventLoop)),
-        mAlreadyClose(false),
-        mMaxRecvBufferSize(maxRecvBufferSize),
-        mSendingMsgSize(0),
-        mEnterCallback(std::move(enterCallback)),
-        mHighWaterSize(0)
+          mIP(socket->getRemoteIP()),
+          mSocket(std::move(socket)),
+          mEventLoop(std::move(eventLoop)),
+          mAlreadyClose(false),
+          mMaxRecvBufferSize(maxRecvBufferSize),
+          mSendingMsgSize(0),
+          mEnterCallback(std::move(enterCallback)),
+          mHighWaterSize(0)
     {
         mRecvData = false;
         mCheckTime = std::chrono::steady_clock::duration::zero();
@@ -271,7 +261,7 @@ protected:
 #endif
     }
 
-    ~TcpConnection() BRYNET_NOEXCEPT override
+    ~TcpConnection() noexcept override
     {
 #ifdef BRYNET_USE_OPENSSL
         if (mSSL != nullptr)
@@ -1041,8 +1031,7 @@ private:
     {
         if (!mIsPostFlush && !mSendList.empty() && mCanWrite)
         {
-            auto sharedThis = shared_from_this();
-            mEventLoop->runFunctorAfterLoop([sharedThis, this]() {
+            mEventLoop->runFunctorAfterLoop([sharedThis = shared_from_this(), this]() {
                 mIsPostFlush = false;
                 flush();
             });

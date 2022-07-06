@@ -2,7 +2,6 @@
 
 #include <algorithm>
 #include <atomic>
-#include <brynet/base/Noexcept.hpp>
 #include <brynet/base/NonCopyable.hpp>
 #include <brynet/base/Timer.hpp>
 #include <brynet/net/Channel.hpp>
@@ -31,16 +30,15 @@ public:
     using UserFunctor = std::function<void(void)>;
 
 public:
-    EventLoop()
-            BRYNET_NOEXCEPT
+    EventLoop() noexcept
         :
 #ifdef BRYNET_PLATFORM_WINDOWS
-        mIOCP(CreateIoCompletionPort(INVALID_HANDLE_VALUE, 0, 0, 1)),
-        mWakeupChannel(std::make_unique<detail::WakeupChannel>(mIOCP))
+          mIOCP(CreateIoCompletionPort(INVALID_HANDLE_VALUE, 0, 0, 1)),
+          mWakeupChannel(std::make_unique<detail::WakeupChannel>(mIOCP))
 #elif defined BRYNET_PLATFORM_LINUX
-        mEpollFd(epoll_create(1))
+          mEpollFd(epoll_create(1))
 #elif defined BRYNET_PLATFORM_DARWIN
-        mKqueueFd(kqueue())
+          mKqueueFd(kqueue())
 #endif
     {
 #ifdef BRYNET_PLATFORM_WINDOWS
@@ -77,7 +75,7 @@ public:
         mSelfThreadIDIsInitialized.store(false);
     }
 
-    virtual ~EventLoop() BRYNET_NOEXCEPT
+    virtual ~EventLoop() noexcept
     {
 #ifdef BRYNET_PLATFORM_WINDOWS
         CloseHandle(mIOCP);
@@ -388,7 +386,7 @@ private:
         return mKqueueFd;
     }
 #endif
-    bool linkChannel(BrynetSocketFD fd, const Channel* ptr) BRYNET_NOEXCEPT
+    bool linkChannel(BrynetSocketFD fd, const Channel* ptr) noexcept
     {
 #ifdef BRYNET_PLATFORM_WINDOWS
         return CreateIoCompletionPort((HANDLE) fd, mIOCP, (ULONG_PTR) ptr, 0) != nullptr;

@@ -9,12 +9,7 @@
 #include <map>
 #include <memory>
 #include <set>
-
-#ifdef BRYNET_HAVE_LANG_CXX17
 #include <shared_mutex>
-#else
-#include <mutex>
-#endif
 
 namespace brynet { namespace net { namespace detail {
 
@@ -85,7 +80,7 @@ class ConnectorWorkInfo final : public brynet::base::NonCopyable
 public:
     using Ptr = std::shared_ptr<ConnectorWorkInfo>;
 
-    ConnectorWorkInfo() BRYNET_NOEXCEPT
+    ConnectorWorkInfo() noexcept
     {
         mPoller.reset(brynet::base::poller_new());
         mPollResult.reset(brynet::base::stack_new(1024, sizeof(BrynetSocketFD)));

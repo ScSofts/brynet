@@ -1,6 +1,5 @@
 #pragma once
 
-#include <brynet/base/Noexcept.hpp>
 #include <brynet/base/NonCopyable.hpp>
 #include <brynet/base/Platform.hpp>
 #include <memory>
@@ -152,14 +151,14 @@ public:
     }
 
 protected:
-    SSLHelper() BRYNET_NOEXCEPT
+    SSLHelper() noexcept
     {
 #ifdef BRYNET_USE_OPENSSL
         mOpenSSLCTX = nullptr;
 #endif
     }
 
-    virtual ~SSLHelper() BRYNET_NOEXCEPT
+    virtual ~SSLHelper() noexcept
     {
 #ifdef BRYNET_USE_OPENSSL
         destroySSL();
