@@ -183,7 +183,7 @@ public:
 
     void setHighWaterCallback(HighWaterCallback cb, size_t size)
     {
-        mEventLoop->runAsyncFunctor([=, sharedThis = shared_from_this(), this]() mutable {
+        mEventLoop->runAsyncFunctor([=, sharedThis = shared_from_this()]() mutable {
             mHighWaterCallback = std::move(cb);
             mHighWaterSize = size;
         });
@@ -192,7 +192,7 @@ public:
     void postShrinkReceiveBuffer()
     {
         mEventLoop->runAsyncFunctor([sharedThis = shared_from_this(), this]() {
-            mEventLoop->runFunctorAfterLoop([sharedThis, this]() {
+            mEventLoop->runFunctorAfterLoop([=]() {
                 shrinkReceiveBuffer();
             });
         });
@@ -202,7 +202,7 @@ public:
     {
         mEventLoop->runAsyncFunctor([sharedThis = shared_from_this(), this]() {
             // call runFunctorAfterLoop, avoid user call postDisConnect in message callback, because after it brynet will use receive buffer.
-            mEventLoop->runFunctorAfterLoop([sharedThis, this]() {
+            mEventLoop->runFunctorAfterLoop([=]() {
                 procCloseInLoop();
             });
         });
@@ -211,7 +211,7 @@ public:
     void postShutdown()
     {
         mEventLoop->runAsyncFunctor([sharedThis = shared_from_this(), this]() {
-            mEventLoop->runFunctorAfterLoop([sharedThis, this]() {
+            mEventLoop->runFunctorAfterLoop([=]() {
                 procShutdownInLoop();
             });
         });
